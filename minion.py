@@ -5,14 +5,48 @@ import argparse
 app = Flask(__name__)
 
 def format_phone(number: int) -> str:
-    num_str = str(number).rjust(10, '0')  # מוודא שיש 10 ספרות
-    return f"{num_str[:3]}-{num_str[3:]}"  # מחזיר 050-0000001
+    """
+        Checkes that the phone number contains 10 digits - if not adding 0 to avoid errors
+        and adjusts it to the IL phone policy
+
+        :param number: The phone number from the renge: 5XXXXXXX
+        :return: The phone number in IL policy: 05-XXXXXXX
+
+        Example:
+        >>> format_phone("500000001")
+       '050-0000001'
+    """
+    num_str = str(number).rjust(10, '0')
+    return f"{num_str[:3]}-{num_str[3:]}"
 
 def md5_hash(s: str) -> str:
+    """
+       Computes the MD5 hash of a given string and returns it as a hexadecimal string.
+
+       :param s: The input string to be hashed.
+       :return: A 32-character MD5 hash string.
+
+       Example:
+       >>> md5_hash("050-0000001")
+       '0da74e79f730b74d0b121f6817b13eac'
+       """
     return hashlib.md5(s.encode()).hexdigest()
 
 def crack_range(target_hash: str, start: int, end: int):
-    print(f"🔍 Searching for {target_hash} in range {start} to {end}")
+    """
+    Goes threw all the numbers in the current range -> adjusts the number to valid phone number
+    -> hashes the password and checks if it matches to the target hash
+
+    :param target_hash: The MD5 password we want to find it real number
+    :param start: Start phone number range
+    :param end: End phone number range
+    :return: If found -> the right phone number. else, None
+
+    Example:
+       >>> crack_range("0da74e79f730b74d0b121f6817b13eac", 50000000, 544444444)
+       '050-0000001'
+    """
+    print(f"Searching for {target_hash} in range {start} to {end}")
     for num in range(start, end + 1):
         phone = format_phone(num)
         hashed = md5_hash(phone)
@@ -25,6 +59,19 @@ def crack_range(target_hash: str, start: int, end: int):
 
 @app.route("/crack", methods=["POST"])
 def crack():
+    """
+    Handles a POST request to attempt cracking a given MD5 hash, with the current range
+    Expected JSON payload:
+    {
+        "target_hash": "MD5 hash string",
+        "range_start": integer,
+        "range_end": integer
+    }
+    :return:
+        - {"status": "found", "password": "05X-XXXXXXX"} if match is found
+        - {"status": "not_found"} if no match is found in the range
+        - {"status": "error", "message": "<error_message>"} in case of failure
+    """
     try:
         data = request.get_json()
         if not data:
