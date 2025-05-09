@@ -1,5 +1,4 @@
 import requests
-import time
 
 NUM_MINIONS = 4
 MINION_URLS = [
@@ -12,81 +11,91 @@ MINION_URLS = [
 PHONE_START = 500000000
 PHONE_END = 599999999
 
-def split_ranges(start: int, end: int, num_parts: int):
-    """
-    Splits the phone numbers ranges for the minion servers
-    :param start: Always will be PHONE_START = 500000000
-    :param end: Always will be PHONE_END = 599999999
-    :param num_parts: The number of the minion servers we want to execute
-    :return: The range in array of tuples
 
-    Example:
-    >>> split_ranges(50000000, 599999999, 4)
-    [(500000000, 524999999), (525000000, 549999999), (550000000, 574999999), (575000000, 599999999)]
-    """
-    total = end - start + 1
-    chunk = total // num_parts
-    ranges = []
+class MasterCracker:
+    def __init__(self, minion_urls: list, phone_start: int, phone_end: int, num_minions: int):
+        self.minion_urls = minion_urls
+        self.phone_start = phone_start
+        self.phone_end = phone_end
+        self.num_minions = num_minions
 
-    for i in range(num_parts):
-        range_start = start + i * chunk
-        range_end = start + (i + 1) * chunk - 1
-        if i == num_parts - 1:
-            range_end = end
-        ranges.append((range_start, range_end))
-    print(ranges)
-    return ranges
+    @staticmethod
+    def split_ranges(start: int, end: int, num_parts: int):
+        """
+        Splits the phone numbers ranges for the minion servers
+        :param start: Always will be PHONE_START = 500000000
+        :param end: Always will be PHONE_END = 599999999
+        :param num_parts: The number of the minion servers we want to execute
+        :return: The range in array of tuples
 
-def crack_hash(target_hash: str):
-    """
-    For each hash from hashes.txt:
-    Finds the hashed phone number between all the possible numbers ->
-    Goes thew the ranges (matching to the number of minion servers we should have) ->
-    creating a payload json for the POST requests to the minion server
-    and sends the request to the server by the right URL from MINION_URLS.
-    Receives the not hashed password !
+        Example:
+        >>> split_ranges(50000000, 599999999, 4)
+        [(500000000, 524999999), (525000000, 549999999), (550000000, 574999999), (575000000, 599999999)]
+        """
+        total = end - start + 1
+        chunk = total // num_parts
+        ranges = []
 
-    :param target_hash: The current hash we want to find his real password
-    :return: The not hashed password
+        for i in range(num_parts):
+            range_start = start + i * chunk
+            range_end = start + (i + 1) * chunk - 1
+            if i == num_parts - 1:
+                range_end = end
+            ranges.append((range_start, range_end))
+        return ranges
 
-    Example:
-    >>> crack_hash("5da0547714d53db4a4c79bc11a057a19")
-    050-0056708
-    """
-    print(f"Cracking hash: {target_hash}")
-    ranges = split_ranges(PHONE_START, PHONE_END, NUM_MINIONS)
+    def crack_hash(self, target_hash: str):
+        """
+        For each hash from hashes.txt:
+        Finds the hashed phone number between all the possible numbers ->
+        Goes thew the ranges (matching to the number of minion servers we should have) ->
+        creating a payload json for the POST requests to the minion server
+        and sends the request to the server by the right URL from MINION_URLS.
+        Receives the not hashed password !
 
-    for i, (start, end) in enumerate(ranges):
-        payload = {
-            "target_hash": target_hash,
-            "range_start": start,
-            "range_end": end
-        }
-        try:
-            # Sending POST requests to  the minion servers
-            response = requests.post(MINION_URLS[i], json=payload, timeout=180)
-            data = response.json()
-            if data["status"] == "found":
-                print(f"Found password: {data['password']}")
-                return data["password"]
-        except Exception as e:
-            print(f"Failed to contact Minion {i+1}: {e}")
-    return None
+        :param target_hash: The current hash we want to find his real password
+        :return: The not hashed password
 
-def main():
-    with open("hashes.txt", "r") as f:
-        hashes = [line.strip() for line in f if line.strip()]
+        Example:
+        >>> crack_hash("5da0547714d53db4a4c79bc11a057a19")
+        050-0056708
+        """
+        print(f"Cracking hash: {target_hash}")
+        ranges = self.split_ranges(self.phone_start, self.phone_end, self.num_minions)
 
-    results = []
+        for i, (start, end) in enumerate(ranges):
+            payload = {
+                "target_hash": target_hash,
+                "range_start": start,
+                "range_end": end
+            }
+            try:
+                # Sending POST requests to  the minion servers
+                response = requests.post(self.minion_urls[i], json=payload, timeout=180)
+                data = response.json()
+                if data["status"] == "found":
+                    print(f"Found password: {data['password']}")
+                    return data["password"]
+            except Exception as e:
+                print(f"Failed to contact Minion {i+1}: {e}")
+        return None
 
-    for h in hashes:
-        password = crack_hash(h)
-        results.append(f"{h} => {password if password else 'NOT FOUND'}")
+    def run(self, input_file: str, output_file: str):
+        with open(input_file, "r") as f:
+            hashes = [line.strip() for line in f if line.strip()]
 
-    with open("output.txt", "w") as f:
-        f.write("\n".join(results))
+        results = []
 
-    print("Done! Results saved to output.txt")
+        for h in hashes:
+            password = self.crack_hash(h)
+            results.append(f"{h} => {password if password else 'NOT FOUND'}")
+
+        with open(output_file, "w") as f:
+            f.write("\n".join(results))
+
+        print("Done! Results saved to output.txt")
+
 
 if __name__ == "__main__":
-    main()
+    cracker = MasterCracker(MINION_URLS, PHONE_START, PHONE_END, NUM_MINIONS)
+    cracker.run("hashes.txt", "output.txt")
