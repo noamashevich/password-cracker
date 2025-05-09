@@ -56,15 +56,15 @@ class MinionCracker:
         >>> crack_range("0da74e79f730b74d0b121f6817b13eac", 50000000, 544444444)
         '050-0000001'
         """
-        print(f"Searching for {self.target_hash} in range {self.start_range} to {self.end_range}")
+        print(f"Searching for {self.target_hash} in range {self.start_range} to {self.end_range}", flush=True)
         for num in range(self.start_range, self.end_range + 1):
             phone = self.format_phone(num)
             hashed = self.md5_hash(phone)
-            print(f"Checking {phone} → {hashed}")
+            # print(f"Checking {phone} -> {hashed}", flush=True)
             if hashed == self.target_hash:
-                print(f"FOUND: {phone}")
+                print(f"FOUND: {phone}", flush=True)
                 return phone
-        print("Not found in range.")
+        print("Not found in range.", flush=True)
         return None
 
 
@@ -88,8 +88,6 @@ def crack():
         if not data:
             return jsonify({"status": "error", "message": "Invalid JSON"}), 400
 
-        print("Received request:", data)
-
         cracker = MinionCracker(
             target_hash=data["target_hash"],
             start_range=int(data["range_start"]),
@@ -102,7 +100,7 @@ def crack():
         return jsonify({"status": "not_found"})
 
     except Exception as e:
-        print(f"Error while processing request: {e}")
+        print(f"Error while processing request: {e}", flush=True)
         return jsonify({"status": "error", "message": str(e)}), 500
 
 
@@ -110,5 +108,5 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--port", type=int, default=5001)
     args = parser.parse_args()
-    print(f"Minion running on port {args.port}")
+    print(f"Minion running on port {args.port}", flush=True)
     app.run(host="127.0.0.1", port=args.port)
