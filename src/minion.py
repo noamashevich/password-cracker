@@ -6,6 +6,7 @@ app = Flask(__name__)
 
 CONFIG = load_config()
 MINION_HOST = CONFIG["minion_host"]
+START_PORT = CONFIG["start_port"]
 
 
 class MinionCracker:
@@ -109,7 +110,7 @@ def crack():
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--port", type=int, default=5001)
+    parser.add_argument("--port", type=int, default=START_PORT)
     args = parser.parse_args()
     print(f"Minion running on port {args.port}", flush=True)
     app.run(host=MINION_HOST, port=args.port)

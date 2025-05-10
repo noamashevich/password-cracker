@@ -10,7 +10,7 @@ CONFIG = load_config()
 NUM_MINIONS = CONFIG["num_minions"]
 START_PORT = CONFIG["start_port"]
 
-SCRIPT_NAME = "minion.py"
+SCRIPT_NAME = "src/minion.py"
 
 def run_minion(port):
     env = dict(os.environ)

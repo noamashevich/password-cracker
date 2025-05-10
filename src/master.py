@@ -98,4 +98,4 @@ class MasterCracker:
 
 if __name__ == "__main__":
     cracker = MasterCracker(MINION_HOST, START_PORT, PHONE_START, PHONE_END, NUM_MINIONS)
-    cracker.run("hashes.txt", "output.txt")
+    cracker.run("data/hashes.txt", "data/output.txt")
