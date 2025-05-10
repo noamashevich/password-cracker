@@ -3,10 +3,14 @@ import sys
 import os
 import time
 import threading
+from config_loader import load_config
 
-NUM_MINIONS = 4
-START_PORT = 5001
-SCRIPT_NAME = "minion.py"  # ודא שזה שם הקובץ שלך
+CONFIG = load_config()
+
+NUM_MINIONS = CONFIG["num_minions"]
+START_PORT = CONFIG["start_port"]
+
+SCRIPT_NAME = "minion.py"
 
 def run_minion(port):
     env = dict(os.environ)
@@ -29,6 +33,7 @@ if __name__ == "__main__":
     processes = []
 
     print("Launching minions...")
+    print(NUM_MINIONS)
     for i in range(NUM_MINIONS):
         port = START_PORT + i
         print(f"Launching Minion on port {port}...")

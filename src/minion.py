@@ -1,8 +1,11 @@
 from flask import Flask, request, jsonify
 import hashlib
 import argparse
-
+from config_loader import load_config
 app = Flask(__name__)
+
+CONFIG = load_config()
+MINION_HOST = CONFIG["minion_host"]
 
 
 class MinionCracker:
@@ -109,4 +112,4 @@ if __name__ == "__main__":
     parser.add_argument("--port", type=int, default=5001)
     args = parser.parse_args()
     print(f"Minion running on port {args.port}", flush=True)
-    app.run(host="127.0.0.1", port=args.port)
+    app.run(host=MINION_HOST, port=args.port)

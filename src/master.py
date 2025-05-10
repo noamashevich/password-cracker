@@ -1,20 +1,19 @@
 import requests
+from config_loader import load_config
 
-NUM_MINIONS = 4
-MINION_URLS = [
-    "http://127.0.0.1:5001/crack",
-    "http://127.0.0.1:5002/crack",
-    "http://127.0.0.1:5003/crack",
-    "http://127.0.0.1:5004/crack"
-]
+CONFIG = load_config()
 
-PHONE_START = 500000000
-PHONE_END = 599999999
+NUM_MINIONS = CONFIG["num_minions"]
+PHONE_START = CONFIG["phone_start"]
+PHONE_END = CONFIG["phone_end"]
 
+MINION_HOST = CONFIG["minion_host"]
+START_PORT = CONFIG["start_port"]
 
 class MasterCracker:
-    def __init__(self, minion_urls: list, phone_start: int, phone_end: int, num_minions: int):
-        self.minion_urls = minion_urls
+    def __init__(self, minion_host: str, start_port: int, phone_start: int, phone_end: int, num_minions: int):
+        self.minion_host = minion_host
+        self.start_port = start_port
         self.phone_start = phone_start
         self.phone_end = phone_end
         self.num_minions = num_minions
@@ -70,8 +69,9 @@ class MasterCracker:
                 "range_end": end
             }
             try:
+                url = f"http://{self.minion_host}:{self.start_port+i}/crack"
                 # Sending POST requests to  the minion servers
-                response = requests.post(self.minion_urls[i], json=payload, timeout=180)
+                response = requests.post(url, json=payload, timeout=180)
                 data = response.json()
                 if data["status"] == "found":
                     print(f"Found password: {data['password']}")
@@ -97,5 +97,5 @@ class MasterCracker:
 
 
 if __name__ == "__main__":
-    cracker = MasterCracker(MINION_URLS, PHONE_START, PHONE_END, NUM_MINIONS)
+    cracker = MasterCracker(MINION_HOST, START_PORT, PHONE_START, PHONE_END, NUM_MINIONS)
     cracker.run("hashes.txt", "output.txt")
