@@ -1,18 +1,34 @@
 from flask import Flask, request, jsonify
 import hashlib
 import argparse
+import threading
 from config_loader import load_config
+
+# Create a Flask web application
 app = Flask(__name__)
+
+# Used to signal early stop of search
+stop_event = threading.Event()
 
 # Load configuration from config.json
 CONFIG = load_config()
-
 MINION_HOST = CONFIG["minion_host"]
 START_PORT = CONFIG["start_port"]
 
 
 class MinionCracker:
+    """
+    A class that performs hash cracking over a given numeric phone number range.
+    """
+
     def __init__(self, target_hash: str, start_range: int, end_range: int):
+        """
+        Initializes a MinionCracker instance.
+
+        :param target_hash: The MD5 hash we are trying to find the matching phone number for
+        :param start_range: Starting number in the range (e.g., 500000000)
+        :param end_range: Ending number in the range (e.g., 599999999)
+        """
         self.target_hash = target_hash
         self.start_range = start_range
         self.end_range = end_range
@@ -20,16 +36,10 @@ class MinionCracker:
     @staticmethod
     def format_phone(number: int) -> str:
         """
-        Formats a number into Israeli phone format '05X-XXXXXXX'.
+        Formats a numeric value into an Israeli phone number: '05X-XXXXXXX'.
 
-        Pads with leading zeros if needed to ensure 10 digits.
-
-        :param number: A numeric value representing a phone number (e.g., 500000001).
-        :return: Formatted phone number as a string: '050-0000001'
-
-        Example:
-        >>> format_phone(500000001)
-        '050-0000001'
+        :param number: Phone number as an integer
+        :return: Formatted phone number as a string
         """
         num_str = str(number).rjust(10, '0')
         return f"{num_str[:3]}-{num_str[3:]}"
@@ -37,33 +47,26 @@ class MinionCracker:
     @staticmethod
     def md5_hash(s: str) -> str:
         """
-        Computes the MD5 hash of a given string and returns it as a hexadecimal string.
+        Returns the MD5 hash of a given string.
 
-        :param s: The input string to be hashed.
-        :return: A 32-character MD5 hash string.
-
-        Example:
-        >>> md5_hash("050-0000001")
-        '0da74e79f730b74d0b121f6817b13eac'
+        :param s: The string to hash
+        :return: MD5 hash string
         """
         return hashlib.md5(s.encode()).hexdigest()
 
-    def crack_range(self):
+    def crack_range(self) -> str | None:
         """
-        Goes threw all the numbers in the current range -> adjusts the number to valid phone number
-        -> hashes the password and checks if it matches to the target hash
+        Searches for a phone number in the specified range whose MD5 hash matches the target.
 
-        :param target_hash: The MD5 password we want to find it real number
-        :param start: Start phone number range
-        :param end: End phone number range
-        :return: If found -> the right phone number. else, None
+        This loop can be stopped early if stop_event is triggered.
 
-        Example:
-        >>> crack_range("0da74e79f730b74d0b121f6817b13eac", 50000000, 544444444)
-        '050-0000001'
+        :return: The matching phone number, or None if not found
         """
         print(f"Searching for {self.target_hash} in range {self.start_range} to {self.end_range}", flush=True)
         for num in range(self.start_range, self.end_range + 1):
+            if stop_event.is_set():
+                # Another minion already found the password
+                break
 
             phone = self.format_phone(num)
             hashed = self.md5_hash(phone)
@@ -76,19 +79,23 @@ class MinionCracker:
 @app.route("/crack", methods=["POST"])
 def crack():
     """
-    Handles a POST request to attempt cracking a given MD5 hash, with the current range
+    Endpoint that receives a cracking request and tries to find a matching phone number.
+
     Expected JSON payload:
     {
-        "target_hash": "MD5 hash string",
-        "range_start": integer,
-        "range_end": integer
+        "target_hash": "md5_hash_value",
+        "range_start": 500000000,
+        "range_end": 509999999
     }
-    :return:
-        - {"status": "found", "password": "05X-XXXXXXX"} if match is found
-        - {"status": "not_found"} if no match is found in the range
-        - {"status": "error", "message": "<error_message>"} in case of failure
+
+    :return: JSON result with status:
+        - {"status": "found", "password": "<phone>"} if found
+        - {"status": "not_found"} if no match
+        - {"status": "error", "message": "..."} if something went wrong
     """
     try:
+        stop_event.clear()  # Reset stop signal before each new search
+
         data = request.get_json()
         if not data:
             return jsonify({"status": "error", "message": "Invalid JSON"}), 400
@@ -109,9 +116,25 @@ def crack():
         return jsonify({"status": "error", "message": str(e)}), 500
 
 
+@app.route("/stop", methods=["POST"])
+def stop():
+    """
+    Endpoint that allows the master to stop the current cracking operation.
+
+    When this is called, the stop_event will be set, and the running loop (if any) will stop.
+    This does not shut down the server, only stops the current search.
+    """
+    stop_event.set()
+    return jsonify({"status": "ok", "message": "Stopping current work"})
+
+
 if __name__ == "__main__":
+    # Parse the port from command line arguments (used when launching each minion)
     parser = argparse.ArgumentParser()
     parser.add_argument("--port", type=int, default=START_PORT)
     args = parser.parse_args()
+
     print(f"Minion running on port {args.port}", flush=True)
+
+    # Start the Flask server
     app.run(host=MINION_HOST, port=args.port)

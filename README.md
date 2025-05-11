@@ -7,13 +7,13 @@ It is designed to crack hashed Israeli phone numbers in the format `05X-XXXXXXX`
 ## 🚀 Features
 
 -  **Parallel** password cracking with multiple workers ("minions")
--  **Crash handling**: restarts minions if they crash
--  **Resumable**: master won’t repeat already-cracked hashes
+-  **Master-managed**: the master launches and controls all minions
+-  **Stop signal**: when a password is found, other minions stop searching immediately
+-  **Resumable**: master skips already-cracked hashes from previous runs
 -  Fully configurable from `config/config.json`
 
 ---
 ## 📁 Project Structure
-
 ```
 PasswordCracker/
 ├── config/
@@ -23,22 +23,24 @@ PasswordCracker/
 │   └── output.txt          # Output file for cracked passwords
 ├── src/
 │   ├── config_loader.py    # Loads config.json
-│   ├── master.py           # Main controller: distributes work to minions
+│   ├── master.py           # Main controller: launches and manages minions
 │   ├── minion.py           # Worker server: cracks password in a range
-│   └── run_minions.py      # Launches and monitors all minion servers
+│   └── run_minions.py      # Utility script to launch all minion servers in parallel
 ├── requirements.txt        # Python dependencies
 ├── README.md               # Project documentation
 └── .gitignore              # Files/folders to ignore by Git
 ```
 
 ---
+
+---
 ## 🧩 How It Works
 
 - You provide a list of MD5 hashes in `data/hashes.txt`
-- The **master** splits the range of possible phone numbers across **multiple minions**
-- Each **minion** searches its assigned range and sends back the match (if found)
+- The **master** launches all minions and splits the range of possible phone numbers across them
+- Each **minion** searches its assigned range and stops if a stop signal is received
+- The **first minion to find a match** returns it, and the others are notified to stop
 - Cracked passwords are saved to `data/output.txt`
-- Crashes? Don’t worry – minions are restarted automatically!
 
 ---
 ## ⚙️ Installation
@@ -47,7 +49,8 @@ PasswordCracker/
 ```bash
 git clone https://github.com/YOUR_USERNAME/PasswordCracker.git
 cd PasswordCracker
-Create and activate a virtual environment
+
+#Create and activate a virtual environment
 python -m venv .venv
 
 # Windows:
@@ -90,22 +93,20 @@ e99a18c428cb38d5f260853678922e03 => 050-1234567
 
 ---
 ## 🧪 How to Run
-### 1. Start the minion servers (in one terminal):
-`python src/run_minions.py`
-This launches all minions (Flask servers) and restarts them automatically if they crash.
-
-### 2. Run the master (in a separate terminal):
+### Run the master :
 `python src/master.py`
 
 #### The master will:
+- Automatically launch all minions and monitor them
 - Read hashes from data/hashes.txt
-- the cracking task across minions in parallel
+- Distribute the cracking task across minions in parallel
+- Send stop signals to other minions when a password is found
 - Save results to data/output.txt
-- Avoid repeating already solved hashes
+- Skip already solved hashes
 
 ---
-## 💥 Crash Handling
-- Minion crashes: Restarted automatically using run_minions.py
+## 💥 Crash HandlingMinion crashes: Restarted automatically using run_minions.py
+- Minion crashes: Automatically restarted by the master
 - Master crashes: When restarted, it skips already processed hashes in output.txt
 
 You can simulate a minion crash by inserting this line inside minion.py:

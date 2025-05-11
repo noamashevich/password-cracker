@@ -1,5 +1,5 @@
 {
-  "num_minions": 10,
+  "num_minions":4,
   "phone_start": 500000000,
   "phone_end": 599999999,
   "minion_host": "127.0.0.1",
