@@ -5,6 +5,7 @@ from config_loader import load_config
 
 # Load configuration from config.json
 CONFIG = load_config()
+
 NUM_MINIONS = CONFIG["num_minions"]
 PHONE_START = CONFIG["phone_start"]
 PHONE_END = CONFIG["phone_end"]
@@ -21,9 +22,13 @@ class MasterCracker:
         self.num_minions = num_minions
 
     @staticmethod
-    def split_ranges(start: int, end: int, num_parts: int):
+    def split_ranges(start: int, end: int, num_parts: int) -> [()]:
         """
         Splits the phone number range evenly for the minion servers.
+        :param start: Start range
+        :param end: End range
+        :param num_parts: The num of the minions
+        :return: List of tuples of the current start and end range
         """
         total = end - start + 1
         chunk = total // num_parts
@@ -37,9 +42,14 @@ class MasterCracker:
         return ranges
 
     @staticmethod
-    def send_request(target_hash, start, end, url):
+    def send_request(target_hash: str, start: int, end: int, url: str) -> str:
         """
         Sends a cracking request to a single minion.
+        :param target_hash: The current hash we want to discover
+        :param start: Start range
+        :param end: End range
+        :param url: The url we want to send it POST request
+        :return: The password
         """
         payload = {
             "target_hash": target_hash,
@@ -57,8 +67,11 @@ class MasterCracker:
 
     def crack_hash_parallel(self, target_hash):
         """
-        Sends requests to all minions in parallel.
+        Sends requests to all minions in parallel with ThreadPoolExecutor,
+        Creating an array of requests and then going threw all the requests in parallel
         Returns the first successful result.
+        :param target_hash: The current hash we want to discover
+        :return: The real password incase we found it. None if not
         """
         print(f"Cracking hash: {target_hash}")
         ranges = self.split_ranges(self.phone_start, self.phone_end, self.num_minions)
@@ -79,6 +92,8 @@ class MasterCracker:
         """
         Reads hashes from file, cracks each one, and writes results to output file.
         If rerun, skips hashes already processed (crash recovery).
+        :param input_file: The target file: hashes.txt
+        :param output_file: The results file: output.txt
         """
         already_done = set()
         if os.path.exists(output_file):
