@@ -59,7 +59,7 @@ python -m venv .venv
 # macOS/Linux:
 source .venv/bin/activate
 Install dependencies
-pip install -r requirements.txt'
+pip install -r requirements.txt
 ```
 
 ---
@@ -105,7 +105,7 @@ e99a18c428cb38d5f260853678922e03 => 050-1234567
 - Skip already solved hashes
 
 ---
-## 💥 Crash HandlingMinion crashes: Restarted automatically using run_minions.py
+## 💥 Crash HandlingMinion crashes: 
 - Minion crashes: Automatically restarted by the master
 - Master crashes: When restarted, it skips already processed hashes in output.txt
 
