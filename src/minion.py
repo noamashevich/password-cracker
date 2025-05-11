@@ -1,3 +1,6 @@
+import os
+import random
+
 from flask import Flask, request, jsonify
 import hashlib
 import argparse
@@ -60,8 +63,12 @@ class MinionCracker:
         >>> crack_range("0da74e79f730b74d0b121f6817b13eac", 50000000, 544444444)
         '050-0000001'
         """
+        if random.random() < 0.01:
+                print("Simulating crash...", flush=True)
+                os._exit(1)
         print(f"Searching for {self.target_hash} in range {self.start_range} to {self.end_range}", flush=True)
         for num in range(self.start_range, self.end_range + 1):
+
             phone = self.format_phone(num)
             hashed = self.md5_hash(phone)
             if hashed == self.target_hash:

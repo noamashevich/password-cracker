@@ -1,14 +1,16 @@
 from concurrent.futures import ThreadPoolExecutor, as_completed
 import requests
-from config_loader import load_config  # loads minion count, ports, etc.
+import os
+from config_loader import load_config
 
-# Load config from external file
+# Load configuration from config.json
 CONFIG = load_config()
 NUM_MINIONS = CONFIG["num_minions"]
 PHONE_START = CONFIG["phone_start"]
 PHONE_END = CONFIG["phone_end"]
 MINION_HOST = CONFIG["minion_host"]
 START_PORT = CONFIG["start_port"]
+
 
 class MasterCracker:
     def __init__(self, minion_host: str, start_port: int, phone_start: int, phone_end: int, num_minions: int):
@@ -21,8 +23,7 @@ class MasterCracker:
     @staticmethod
     def split_ranges(start: int, end: int, num_parts: int):
         """
-        Splits the phone number range evenly for all minions.
-        Returns a list of (start, end) tuples.
+        Splits the phone number range evenly for the minion servers.
         """
         total = end - start + 1
         chunk = total // num_parts
@@ -35,10 +36,10 @@ class MasterCracker:
             ranges.append((range_start, range_end))
         return ranges
 
-    def send_request(self, target_hash, start, end, url):
+    @staticmethod
+    def send_request(target_hash, start, end, url):
         """
-        Sends the cracking request to one minion.
-        Returns the password if found, else None.
+        Sends a cracking request to a single minion.
         """
         payload = {
             "target_hash": target_hash,
@@ -56,7 +57,8 @@ class MasterCracker:
 
     def crack_hash_parallel(self, target_hash):
         """
-        Sends requests to all minions in parallel and waits for the first one to return a result.
+        Sends requests to all minions in parallel.
+        Returns the first successful result.
         """
         print(f"Cracking hash: {target_hash}")
         ranges = self.split_ranges(self.phone_start, self.phone_end, self.num_minions)
@@ -71,30 +73,39 @@ class MasterCracker:
                 password = future.result()
                 if password:
                     return password
-
         return None
 
     def run(self, input_file: str, output_file: str):
         """
         Reads hashes from file, cracks each one, and writes results to output file.
+        If rerun, skips hashes already processed (crash recovery).
         """
+        already_done = set()
+        if os.path.exists(output_file):
+            with open(output_file, "r") as f:
+                for line in f:
+                    parts = line.strip().split(" => ")
+                    if len(parts) == 2:
+                        already_done.add(parts[0])
+
         with open(input_file, "r") as f:
             hashes = [line.strip() for line in f if line.strip()]
 
-        results = []
         for h in hashes:
+            if h in already_done:
+                print(f"Skipping already processed hash: {h}")
+                continue
+
             password = self.crack_hash_parallel(h)
             if password:
                 print(f"Found password: {password}")
             else:
-                print(f"Not found password :(")
+                print("Not found password :(")
 
-            results.append(f"{h} => {password if password else 'NOT FOUND'}")
+            with open(output_file, "a") as f:
+                f.write(f"{h} => {password if password else 'NOT FOUND'}\n")
 
-        with open(output_file, "w") as f:
-            f.write("\n".join(results))
-
-        print("\nDone! Results saved to output.txt")
+        print("\nDone! Results saved to", output_file)
 
 
 if __name__ == "__main__":
