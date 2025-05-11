@@ -15,6 +15,8 @@ def run_minion(port):
     """
     Starts a minion process on the specified port.
     Returns the subprocess.Popen object.
+    :param port: The specified port
+    :return: The subprocess.Popen object
     """
     env = dict(os.environ)
     env["PYTHONUNBUFFERED"] = "1"
@@ -31,6 +33,9 @@ def stream_output(port, proc, restart_callback):
     """
     Streams output from a minion process.
     If the process ends unexpectedly, calls the restart callback.
+    :param port: The specified port
+    :param proc: The subprocess.Popen object
+    :param restart_callback: The retry function
     """
     try:
         for line in proc.stdout:
