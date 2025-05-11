@@ -66,22 +66,3 @@ def launch_and_monitor(port: int):
     thread.start()
     return proc
 
-if __name__ == "__main__":
-    processes = []
-
-    print("Launching minions...")
-    for i in range(NUM_MINIONS):
-        port = START_PORT + i
-        print(f"Launching Minion on port {port}...")
-        proc = launch_and_monitor(port)
-        processes.append((port, proc))
-
-    print("All minions launched. Listening for output.\nPress Ctrl+C to stop.")
-
-    try:
-        while True:
-            time.sleep(1)
-    except KeyboardInterrupt:
-        print("Stopping all minions...")
-        for _, proc in processes:
-            proc.terminate()
