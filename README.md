@@ -80,25 +80,25 @@ Edit config/config.json:
 - phone_start, phone_end: Full phone range to check
 ---
 ## 📂 Input & Output
-Input: data/hashes.txt
-Add one MD5 hash per line:
+### Input: `data/hashes.txt`
+#### Add one MD5 hash per line:
 e99a18c428cb38d5f260853678922e03
 5da0547714d53db4a4c79bc11a057a19
 
-Output: data/output.txt
-The cracked results:
+### output: `data/output.txt`
+#### The cracked results:
 e99a18c428cb38d5f260853678922e03 => 050-1234567
 5da0547714d53db4a4c79bc11a057a19 => NOT FOUND
 ---
 ## 🧪 How to Run
-1. Start the minion servers (in one terminal):
-python src/run_minions.py
+### 1. Start the minion servers (in one terminal):
+`python src/run_minions.py`
 This launches all minions (Flask servers) and restarts them automatically if they crash.
 
-2. Run the master (in a separate terminal):
-python src/master.py
+### 2. Run the master (in a separate terminal):
+`python src/master.py`
 
-The master will:
+#### The master will:
 - Read hashes from data/hashes.txt
 - the cracking task across minions in parallel
 - Save results to data/output.txt
