@@ -75,7 +75,7 @@ Edit config/config.json:
 - start_port: First port (others will increment from here)
 - minion_host: Usually 127.0.0.1
 - phone_start, phone_end: Full phone range to check
-- 
+
 ---
 ## 📂 Input & Output
 ### Input: `data/hashes.txt`
