@@ -4,7 +4,6 @@ This project simulates a **distributed password-cracking system** using Python, 
 It is designed to crack hashed Israeli phone numbers in the format `05X-XXXXXXX` (e.g., `050-1234567`) that were hashed using **MD5**.
 
 ---
-
 ## 🚀 Features
 
 -  **Parallel** password cracking with multiple workers ("minions")
@@ -13,7 +12,6 @@ It is designed to crack hashed Israeli phone numbers in the format `05X-XXXXXXX`
 -  Fully configurable from `config/config.json`
 
 ---
-
 ## 📁 Project Structure
 
 ```
@@ -34,7 +32,6 @@ PasswordCracker/
 ```
 
 ---
-
 ## 🧩 How It Works
 
 - You provide a list of MD5 hashes in `data/hashes.txt`
@@ -44,7 +41,6 @@ PasswordCracker/
 - Crashes? Don’t worry – minions are restarted automatically!
 
 ---
-
 ## ⚙️ Installation
 
 1. **Clone the project**
@@ -62,6 +58,7 @@ source .venv/bin/activate
 Install dependencies
 pip install -r requirements.txt'
 ```
+
 ---
 ## 🔧 Configuration
 ```
@@ -78,6 +75,7 @@ Edit config/config.json:
 - start_port: First port (others will increment from here)
 - minion_host: Usually 127.0.0.1
 - phone_start, phone_end: Full phone range to check
+- 
 ---
 ## 📂 Input & Output
 ### Input: `data/hashes.txt`
@@ -87,8 +85,9 @@ e99a18c428cb38d5f260853678922e03
 
 ### output: `data/output.txt`
 #### The cracked results:
-e99a18c428cb38d5f260853678922e03 => 050-1234567
+e99a18c428cb38d5f260853678922e03 => 050-1234567 
 5da0547714d53db4a4c79bc11a057a19 => NOT FOUND
+
 ---
 ## 🧪 How to Run
 ### 1. Start the minion servers (in one terminal):
@@ -103,6 +102,7 @@ This launches all minions (Flask servers) and restarts them automatically if the
 - the cracking task across minions in parallel
 - Save results to data/output.txt
 - Avoid repeating already solved hashes
+
 ---
 ## 💥 Crash Handling
 - Minion crashes: Restarted automatically using run_minions.py
