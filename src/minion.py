@@ -64,11 +64,10 @@ class MinionCracker:
         for num in range(self.start_range, self.end_range + 1):
             phone = self.format_phone(num)
             hashed = self.md5_hash(phone)
-            # print(f"Checking {phone} -> {hashed}", flush=True)
             if hashed == self.target_hash:
                 print(f"FOUND: {phone}", flush=True)
                 return phone
-        print("Not found in range.", flush=True)
+        print(f"Not found in range {self.start_range} - {self.end_range}", flush=True)
         return None
 
 

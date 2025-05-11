@@ -1,12 +1,12 @@
+from concurrent.futures import ThreadPoolExecutor, as_completed
 import requests
-from config_loader import load_config
+from config_loader import load_config  # loads minion count, ports, etc.
 
+# Load config from external file
 CONFIG = load_config()
-
 NUM_MINIONS = CONFIG["num_minions"]
 PHONE_START = CONFIG["phone_start"]
 PHONE_END = CONFIG["phone_end"]
-
 MINION_HOST = CONFIG["minion_host"]
 START_PORT = CONFIG["start_port"]
 
@@ -21,20 +21,12 @@ class MasterCracker:
     @staticmethod
     def split_ranges(start: int, end: int, num_parts: int):
         """
-        Splits the phone numbers ranges for the minion servers
-        :param start: Always will be PHONE_START = 500000000
-        :param end: Always will be PHONE_END = 599999999
-        :param num_parts: The number of the minion servers we want to execute
-        :return: The range in array of tuples
-
-        Example:
-        >>> split_ranges(50000000, 599999999, 4)
-        [(500000000, 524999999), (525000000, 549999999), (550000000, 574999999), (575000000, 599999999)]
+        Splits the phone number range evenly for all minions.
+        Returns a list of (start, end) tuples.
         """
         total = end - start + 1
         chunk = total // num_parts
         ranges = []
-
         for i in range(num_parts):
             range_start = start + i * chunk
             range_end = start + (i + 1) * chunk - 1
@@ -43,57 +35,66 @@ class MasterCracker:
             ranges.append((range_start, range_end))
         return ranges
 
-    def crack_hash(self, target_hash: str):
+    def send_request(self, target_hash, start, end, url):
         """
-        For each hash from hashes.txt:
-        Finds the hashed phone number between all the possible numbers ->
-        Goes thew the ranges (matching to the number of minion servers we should have) ->
-        creating a payload json for the POST requests to the minion server
-        and sends the request to the server by the right URL from MINION_URLS.
-        Receives the not hashed password !
+        Sends the cracking request to one minion.
+        Returns the password if found, else None.
+        """
+        payload = {
+            "target_hash": target_hash,
+            "range_start": start,
+            "range_end": end
+        }
+        try:
+            response = requests.post(url, json=payload, timeout=180)
+            data = response.json()
+            if data["status"] == "found":
+                return data["password"]
+        except Exception as e:
+            print(f"Failed to contact {url}: {e}")
+        return None
 
-        :param target_hash: The current hash we want to find his real password
-        :return: The not hashed password
-
-        Example:
-        >>> crack_hash("5da0547714d53db4a4c79bc11a057a19")
-        050-0056708
+    def crack_hash_parallel(self, target_hash):
+        """
+        Sends requests to all minions in parallel and waits for the first one to return a result.
         """
         print(f"Cracking hash: {target_hash}")
         ranges = self.split_ranges(self.phone_start, self.phone_end, self.num_minions)
 
-        for i, (start, end) in enumerate(ranges):
-            payload = {
-                "target_hash": target_hash,
-                "range_start": start,
-                "range_end": end
-            }
-            try:
-                url = f"http://{self.minion_host}:{self.start_port+i}/crack"
-                # Sending POST requests to  the minion servers
-                response = requests.post(url, json=payload, timeout=180)
-                data = response.json()
-                if data["status"] == "found":
-                    print(f"Found password: {data['password']}")
-                    return data["password"]
-            except Exception as e:
-                print(f"Failed to contact Minion {i+1}: {e}")
+        with ThreadPoolExecutor(max_workers=self.num_minions) as executor:
+            futures = []
+            for i, (start, end) in enumerate(ranges):
+                url = f"http://{self.minion_host}:{self.start_port + i}/crack"
+                futures.append(executor.submit(self.send_request, target_hash, start, end, url))
+
+            for future in as_completed(futures):
+                password = future.result()
+                if password:
+                    return password
+
         return None
 
     def run(self, input_file: str, output_file: str):
+        """
+        Reads hashes from file, cracks each one, and writes results to output file.
+        """
         with open(input_file, "r") as f:
             hashes = [line.strip() for line in f if line.strip()]
 
         results = []
-
         for h in hashes:
-            password = self.crack_hash(h)
+            password = self.crack_hash_parallel(h)
+            if password:
+                print(f"Found password: {password}")
+            else:
+                print(f"Not found password :(")
+
             results.append(f"{h} => {password if password else 'NOT FOUND'}")
 
         with open(output_file, "w") as f:
             f.write("\n".join(results))
 
-        print("Done! Results saved to output.txt")
+        print("\nDone! Results saved to output.txt")
 
 
 if __name__ == "__main__":
