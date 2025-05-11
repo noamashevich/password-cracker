@@ -70,7 +70,6 @@ class MinionCracker:
             if hashed == self.target_hash:
                 print(f"FOUND: {phone}", flush=True)
                 return phone
-        print(f"Not found in range {self.start_range} - {self.end_range}", flush=True)
         return None
 
 
